@@ -14,6 +14,8 @@ class Transcription extends Model
     protected $fillable = [
         'original_filename',
         'video_path',
+        'language',
+        'export_language',
         'audio_path',
         'status',
         'srt_content',

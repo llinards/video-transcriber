@@ -88,6 +88,82 @@ it('can start over after completion', function () {
         ->assertSet('video', null);
 });
 
+it('stores the selected language when transcribing', function () {
+    Storage::fake('local');
+    Queue::fake();
+
+    Livewire::test('video-transcriber')
+        ->set('video', UploadedFile::fake()->create('test-video.mp4', 5000, 'video/mp4'))
+        ->set('language', 'en')
+        ->call('transcribe')
+        ->assertHasNoErrors();
+
+    $transcription = Transcription::first();
+    expect($transcription->language)->toBe('en');
+});
+
+it('defaults language to latvian', function () {
+    Storage::fake('local');
+    Queue::fake();
+
+    Livewire::test('video-transcriber')
+        ->set('video', UploadedFile::fake()->create('test-video.mp4', 5000, 'video/mp4'))
+        ->call('transcribe')
+        ->assertHasNoErrors();
+
+    $transcription = Transcription::first();
+    expect($transcription->language)->toBe('lv');
+});
+
+it('validates that language must be a supported value', function () {
+    Storage::fake('local');
+
+    Livewire::test('video-transcriber')
+        ->set('video', UploadedFile::fake()->create('test-video.mp4', 5000, 'video/mp4'))
+        ->set('language', 'xx')
+        ->call('transcribe')
+        ->assertHasErrors(['language' => 'in']);
+});
+
+it('stores the export language when provided', function () {
+    Storage::fake('local');
+    Queue::fake();
+
+    Livewire::test('video-transcriber')
+        ->set('video', UploadedFile::fake()->create('test-video.mp4', 5000, 'video/mp4'))
+        ->set('language', 'lv')
+        ->set('exportLanguage', 'en')
+        ->call('transcribe')
+        ->assertHasNoErrors();
+
+    $transcription = Transcription::first();
+    expect($transcription->export_language)->toBe('en');
+});
+
+it('stores null export language when empty', function () {
+    Storage::fake('local');
+    Queue::fake();
+
+    Livewire::test('video-transcriber')
+        ->set('video', UploadedFile::fake()->create('test-video.mp4', 5000, 'video/mp4'))
+        ->set('exportLanguage', '')
+        ->call('transcribe')
+        ->assertHasNoErrors();
+
+    $transcription = Transcription::first();
+    expect($transcription->export_language)->toBeNull();
+});
+
+it('validates that export language must be a supported value', function () {
+    Storage::fake('local');
+
+    Livewire::test('video-transcriber')
+        ->set('video', UploadedFile::fake()->create('test-video.mp4', 5000, 'video/mp4'))
+        ->set('exportLanguage', 'xx')
+        ->call('transcribe')
+        ->assertHasErrors(['exportLanguage' => 'in']);
+});
+
 it('can download the SRT file', function () {
     $transcription = Transcription::factory()->completed()->create([
         'original_filename' => 'my-video.mp4',

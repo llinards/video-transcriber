@@ -20,6 +20,7 @@ class TranscriptionFactory extends Factory
         return [
             'original_filename' => fake()->word().'.mp4',
             'video_path' => 'videos/'.fake()->uuid().'.mp4',
+            'language' => 'lv',
             'status' => TranscriptionStatus::Pending,
         ];
     }

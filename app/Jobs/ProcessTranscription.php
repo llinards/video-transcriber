@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Transcription as AiTranscription;
 use Throwable;
 
+use function Laravel\Ai\agent;
+
 class ProcessTranscription implements ShouldQueue
 {
     use Queueable;
@@ -41,7 +43,8 @@ class ProcessTranscription implements ShouldQueue
     {
         try {
             $this->extractAudio();
-            $this->transcribe($srtGenerator);
+            $srtContent = $this->transcribe($srtGenerator);
+            $srtContent = $this->translate($srtContent);
         } catch (Throwable $e) {
             Log::error('Transcription processing failed', [
                 'transcription_id' => $this->transcription->id,
@@ -90,21 +93,48 @@ class ProcessTranscription implements ShouldQueue
     /**
      * Transcribe the extracted audio using the Laravel AI SDK.
      */
-    private function transcribe(SrtGenerator $srtGenerator): void
+    private function transcribe(SrtGenerator $srtGenerator): string
     {
         $this->transcription->update(['status' => TranscriptionStatus::Transcribing]);
 
         $transcript = AiTranscription::fromStorage($this->transcription->audio_path)
-            ->language('lv')
+            ->language($this->transcription->language)
             ->diarize()
             ->timeout(300)
             ->generate();
 
-        $srtContent = $srtGenerator->generate($transcript->segments);
+        return $srtGenerator->generate($transcript->segments);
+    }
+
+    /**
+     * Translate the SRT content to the export language if needed.
+     */
+    private function translate(string $srtContent): string
+    {
+        $exportLanguage = $this->transcription->export_language;
+
+        if (! $exportLanguage || $exportLanguage === $this->transcription->language) {
+            $this->transcription->update([
+                'status' => TranscriptionStatus::Completed,
+                'srt_content' => $srtContent,
+            ]);
+
+            return $srtContent;
+        }
+
+        $this->transcription->update(['status' => TranscriptionStatus::Translating]);
+
+        $response = agent(
+            instructions: 'You are an expert subtitle translator. Translate the following SRT content to the requested language. Preserve the exact SRT format including sequence numbers and timestamps. Only translate the text lines. Return only the translated SRT content with no additional commentary.',
+        )->prompt("Translate the following SRT subtitles to {$exportLanguage}:\n\n{$srtContent}");
+
+        $translatedSrt = $response->text;
 
         $this->transcription->update([
             'status' => TranscriptionStatus::Completed,
-            'srt_content' => $srtContent,
+            'srt_content' => $translatedSrt,
         ]);
+
+        return $translatedSrt;
     }
 }

@@ -14,6 +14,12 @@ new class extends Component
     #[Validate('required|file|mimes:mp4,mov,avi,mkv,webm|max:512000')]
     public $video;
 
+    #[Validate('required|string|in:lv,en,de,fr,es,it,pt,nl,pl,uk,ru,ja,zh,ko')]
+    public string $language = 'lv';
+
+    #[Validate('nullable|string|in:lv,en,de,fr,es,it,pt,nl,pl,uk,ru,ja,zh,ko')]
+    public string $exportLanguage = '';
+
     public ?int $transcriptionId = null;
 
     /**
@@ -28,6 +34,8 @@ new class extends Component
         $transcription = Transcription::create([
             'original_filename' => $this->video->getClientOriginalName(),
             'video_path' => $path,
+            'language' => $this->language,
+            'export_language' => $this->exportLanguage ?: null,
             'status' => TranscriptionStatus::Pending,
         ]);
 
@@ -58,7 +66,7 @@ new class extends Component
      */
     public function startOver(): void
     {
-        $this->reset(['video', 'transcriptionId']);
+        $this->reset(['video', 'transcriptionId', 'exportLanguage']);
     }
 
     /**
@@ -137,6 +145,65 @@ new class extends Component
                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
 
+                <div class="mt-4">
+                    <label for="language" class="mb-2 block text-sm font-medium text-gray-700">
+                        Spoken Language
+                    </label>
+                    <select
+                        id="language"
+                        wire:model="language"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                        <option value="lv">Latvian</option>
+                        <option value="en">English</option>
+                        <option value="de">German</option>
+                        <option value="fr">French</option>
+                        <option value="es">Spanish</option>
+                        <option value="it">Italian</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="nl">Dutch</option>
+                        <option value="pl">Polish</option>
+                        <option value="uk">Ukrainian</option>
+                        <option value="ru">Russian</option>
+                        <option value="ja">Japanese</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ko">Korean</option>
+                    </select>
+                    @error('language')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="mt-4">
+                    <label for="exportLanguage" class="mb-2 block text-sm font-medium text-gray-700">
+                        Subtitle Language
+                    </label>
+                    <select
+                        id="exportLanguage"
+                        wire:model="exportLanguage"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                        <option value="">Same as spoken language</option>
+                        <option value="lv">Latvian</option>
+                        <option value="en">English</option>
+                        <option value="de">German</option>
+                        <option value="fr">French</option>
+                        <option value="es">Spanish</option>
+                        <option value="it">Italian</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="nl">Dutch</option>
+                        <option value="pl">Polish</option>
+                        <option value="uk">Ukrainian</option>
+                        <option value="ru">Russian</option>
+                        <option value="ja">Japanese</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ko">Korean</option>
+                    </select>
+                    @error('exportLanguage')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <button
                     type="submit"
                     class="mt-6 w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -170,12 +237,14 @@ new class extends Component
                             ['status' => TranscriptionStatus::Pending, 'label' => 'Queued for processing', 'order' => 0],
                             ['status' => TranscriptionStatus::ExtractingAudio, 'label' => 'Extracting audio from video', 'order' => 1],
                             ['status' => TranscriptionStatus::Transcribing, 'label' => 'Transcribing audio to text', 'order' => 2],
+                            ['status' => TranscriptionStatus::Translating, 'label' => 'Translating subtitles', 'order' => 3],
                         ];
                         $currentStatus = $this->transcription->status;
                         $statusValues = [
                             TranscriptionStatus::Pending->value => 0,
                             TranscriptionStatus::ExtractingAudio->value => 1,
                             TranscriptionStatus::Transcribing->value => 2,
+                            TranscriptionStatus::Translating->value => 3,
                         ];
                         $currentOrder = $statusValues[$currentStatus->value] ?? 0;
                     @endphp
