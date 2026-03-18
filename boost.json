@@ -15,6 +15,6 @@
         "livewire-development",
         "pest-testing",
         "tailwindcss-development",
-        "developing-with-ai-sdk"
+        "ai-sdk-development"
     ]
 }
