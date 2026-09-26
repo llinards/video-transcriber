@@ -207,9 +207,9 @@ new class extends Component
                 <button
                     type="submit"
                     class="mt-6 w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
-                    wire:loading.attr="disabled"
+                    wire:loading.class="pointer-events-none opacity-50"
                     wire:target="video"
-                    @if (! $video) disabled @endif
+                    @disabled(! $video)
                 >
                     <span wire:loading.remove wire:target="transcribe">Transcribe Video</span>
                     <span wire:loading wire:target="transcribe">Starting...</span>

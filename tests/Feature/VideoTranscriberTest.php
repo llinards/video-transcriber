@@ -48,6 +48,23 @@ it('uploads a video and dispatches the processing job', function () {
     Queue::assertPushed(ProcessTranscription::class);
 });
 
+it('enables the transcribe button only once a video is uploaded', function () {
+    Storage::fake('local');
+
+    $component = Livewire::test('video-transcriber');
+
+    expect($component->html())->toMatch('/<button[^>]*type="submit"[^>]*\sdisabled(?=[\s=>])[^>]*>/s');
+
+    $component->set('video', UploadedFile::fake()->create('test-video.mp4', 5000, 'video/mp4'));
+
+    expect($component->html())->not->toMatch('/<button[^>]*type="submit"[^>]*\sdisabled(?=[\s=>])[^>]*>/s');
+});
+
+it('does not let the upload loading state restore a stale disabled attribute', function () {
+    Livewire::test('video-transcriber')
+        ->assertDontSeeHtml('wire:loading.attr="disabled"');
+});
+
 it('shows processing state when transcription is in progress', function () {
     $transcription = Transcription::factory()->create([
         'status' => TranscriptionStatus::ExtractingAudio,
